@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "install-module-linked": "*",
-    "keyv": "^5.0.0"
+    "keyv": "^5.5.4"
   },
   "devDependencies": {
     "@biomejs/biome": "*",
