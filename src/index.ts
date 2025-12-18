@@ -37,7 +37,10 @@ export type { AdapterConfig, CreateStoreCallback, CreateStoreOptions } from './t
  * const redis = new KeyvRedis('redis://localhost:6379');
  * const store = await createStore('redis://ignored', { store: redis });
  */
-export default function createStore<T>(uri: string, options?: CreateStoreOptions | CreateStoreCallback<T>, callback?: CreateStoreCallback<T>): undefined | Promise<Keyv<T>> {
+export default function createStore<T>(uri: string, callback: CreateStoreCallback<T>): void;
+export default function createStore<T>(uri: string, options: CreateStoreOptions, callback: CreateStoreCallback<T>): void;
+export default function createStore<T>(uri: string, options?: CreateStoreOptions): Promise<Keyv<T>>;
+export default function createStore<T>(uri: string, options?: CreateStoreOptions | CreateStoreCallback<T>, callback?: CreateStoreCallback<T>): void | Promise<Keyv<T>> {
   // Normalize arguments
   if (typeof options === 'function') {
     callback = options;
@@ -46,10 +49,7 @@ export default function createStore<T>(uri: string, options?: CreateStoreOptions
   options = options || {};
 
   // Callback mode
-  if (typeof callback === 'function') {
-    worker(uri, options, callback);
-    return undefined;
-  }
+  if (typeof callback === 'function') return worker(uri, options, callback);
 
   // Promise mode
   return new Promise((resolve, reject) => {

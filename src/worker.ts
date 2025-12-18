@@ -48,10 +48,7 @@ export default function worker<T>(uri: string, options: CreateStoreOptions, call
 
   // Load adapter (install if needed)
   loadAdapter(config.package, config.exportName, (err, AdapterClass) => {
-    if (err) {
-      callback(err);
-      return;
-    }
+    if (err) return callback(err);
 
     try {
       // Build adapter options: URI params + custom mapper + user options
