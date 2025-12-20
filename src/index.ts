@@ -41,18 +41,11 @@ export default function createStore<T>(uri: string, callback: CreateStoreCallbac
 export default function createStore<T>(uri: string, options: CreateStoreOptions, callback: CreateStoreCallback<T>): void;
 export default function createStore<T>(uri: string, options?: CreateStoreOptions): Promise<Keyv<T>>;
 export default function createStore<T>(uri: string, options?: CreateStoreOptions | CreateStoreCallback<T>, callback?: CreateStoreCallback<T>): void | Promise<Keyv<T>> {
-  // Normalize arguments
-  if (typeof options === 'function') {
-    callback = options;
-    options = {};
-  }
-  options = options || {};
+  callback = typeof options === 'function' ? options : callback;
+  options = typeof options === 'function' ? {} : ((options || {}) as CreateStoreOptions);
 
-  // Callback mode
   if (typeof callback === 'function') return worker(uri, options, callback);
-
-  // Promise mode
   return new Promise((resolve, reject) => {
-    worker(uri, options as CreateStoreOptions, (err, store) => (err ? reject(err) : resolve(store as Keyv<T>)));
+    worker(uri, options, (err, store) => (err ? reject(err) : resolve(store as Keyv<T>)));
   });
 }
