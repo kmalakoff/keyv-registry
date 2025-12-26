@@ -8,7 +8,7 @@ import type { LoadAdapterCallback } from './types.ts';
 const _require = typeof require === 'undefined' ? Module.createRequire(import.meta.url) : require;
 
 // Determine node_modules path
-const _dirname = path.dirname(typeof __dirname !== 'undefined' ? __dirname : url.fileURLToPath(import.meta.url));
+const _dirname = path.dirname(typeof __filename === 'undefined' ? url.fileURLToPath(import.meta.url) : __filename);
 const nodeModulesPath = path.join(_dirname, '..', '..', 'node_modules');
 
 // Cache loaded adapters
