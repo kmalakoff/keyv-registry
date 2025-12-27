@@ -1,6 +1,6 @@
 {
   "name": "keyv-registry",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Protocol-based Keyv adapter registry with dynamic module installation",
   "keywords": [
     "keyv",
