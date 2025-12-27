@@ -45,7 +45,5 @@ export default function createStore<T>(uri: string, options?: CreateStoreOptions
   options = typeof options === 'function' ? {} : ((options || {}) as CreateStoreOptions);
 
   if (typeof callback === 'function') return worker(uri, options, callback);
-  return new Promise((resolve, reject) => {
-    worker(uri, options, (err, store) => (err ? reject(err) : resolve(store as Keyv<T>)));
-  });
+  return new Promise((resolve, reject) => worker(uri, options, (err, store) => (err ? reject(err) : resolve(store as Keyv<T>))));
 }
