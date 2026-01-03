@@ -77,6 +77,25 @@ const store = await createStore('redis://localhost:6379?keyPrefix=myapp&ttl=3600
 const file = await createStore('file://~/data.json?writeDelay=100&pretty=true');
 ```
 
+### Connection String Handling
+
+Connection strings are passed to adapters via protocol-specific mappings. Different adapters expect connection information in different formats:
+
+**Direct URL passing** (adapter instantiated with URI string):
+- `redis://`, `rediss://` - Redis
+- `memcache://` - Memcached
+
+**URI option mapping** (wrapped in `{ uri }` object):
+- `postgresql://`, `postgres://` - PostgreSQL
+- `mysql://` - MySQL/MariaDB
+- `sqlite://` - SQLite
+
+**URL option mapping** (wrapped in `{ url }` object):
+- `mongodb://`, `mongodb+srv://` - MongoDB
+- `etcd://` - etcd
+
+Query parameters are always passed through and can be used for adapter-specific configuration. User options override both query parameters and protocol mappings.
+
 ### Custom Adapters
 
 Register custom protocols or override defaults:
@@ -119,15 +138,15 @@ const store = await createStore('redis://ignored', { store: customRedis });
 
 ### Official @keyv Adapters
 
-| Protocol | Package | Notes |
-|----------|---------|-------|
-| `redis://`, `rediss://` | `@keyv/redis` | Redis, supports TLS |
-| `postgresql://`, `postgres://` | `@keyv/postgres` | PostgreSQL |
-| `mysql://` | `@keyv/mysql` | MySQL/MariaDB |
-| `sqlite://` | `@keyv/sqlite` | SQLite |
-| `mongodb://`, `mongodb+srv://` | `@keyv/mongo` | MongoDB |
-| `memcache://` | `@keyv/memcache` | Memcached |
-| `etcd://` | `@keyv/etcd` | etcd |
+| Protocol | Package | Connection String Handling | Notes |
+|----------|---------|---------------------------|-------|
+| `redis://`, `rediss://` | `@keyv/redis` | Direct URL | Redis, supports TLS |
+| `postgresql://`, `postgres://` | `@keyv/postgres` | URI option | PostgreSQL |
+| `mysql://` | `@keyv/mysql` | URI option | MySQL/MariaDB |
+| `sqlite://` | `@keyv/sqlite` | URI option | SQLite |
+| `mongodb://`, `mongodb+srv://` | `@keyv/mongo` | URL option | MongoDB |
+| `memcache://` | `@keyv/memcache` | Direct URI | Memcached |
+| `etcd://` | `@keyv/etcd` | URL option | etcd |
 
 ### Third-party Adapters
 

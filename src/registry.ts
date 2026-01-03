@@ -6,16 +6,16 @@ import { resolveFilePath } from './utils.ts';
  */
 const PROTOCOL_REGISTRY: Record<string, AdapterConfig> = {
   // Official @keyv adapters
-  'redis:': { package: '@keyv/redis' },
-  'rediss:': { package: '@keyv/redis' },
-  'postgresql:': { package: '@keyv/postgres' },
-  'postgres:': { package: '@keyv/postgres' },
-  'mysql:': { package: '@keyv/mysql' },
-  'sqlite:': { package: '@keyv/sqlite' },
-  'mongodb:': { package: '@keyv/mongo' },
-  'mongodb+srv:': { package: '@keyv/mongo' },
-  'memcache:': { package: '@keyv/memcache' },
-  'etcd:': { package: '@keyv/etcd' },
+  'redis:': { package: '@keyv/redis', mode: 'string' },
+  'rediss:': { package: '@keyv/redis', mode: 'string' },
+  'postgresql:': { package: '@keyv/postgres', mode: 'options', optionsMapper: (url) => ({ uri: url.toString() }) },
+  'postgres:': { package: '@keyv/postgres', mode: 'options', optionsMapper: (url) => ({ uri: url.toString() }) },
+  'mysql:': { package: '@keyv/mysql', mode: 'options', optionsMapper: (url) => ({ uri: url.toString() }) },
+  'sqlite:': { package: '@keyv/sqlite', mode: 'options', optionsMapper: (url) => ({ uri: url.toString() }) },
+  'mongodb:': { package: '@keyv/mongo', mode: 'options', optionsMapper: (url) => ({ url: url.toString() }) },
+  'mongodb+srv:': { package: '@keyv/mongo', mode: 'options', optionsMapper: (url) => ({ url: url.toString() }) },
+  'memcache:': { package: '@keyv/memcache', mode: 'string' },
+  'etcd:': { package: '@keyv/etcd', mode: 'options', optionsMapper: (url) => ({ url: url.toString() }) },
 
   // Third-party adapters
   'file:': {
