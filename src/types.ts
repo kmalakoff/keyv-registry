@@ -8,6 +8,8 @@ export interface AdapterConfig {
   package: string | null;
   /** Named export from the package (default: 'default') */
   exportName?: string;
+  /** How to instantiate the adapter */
+  mode?: 'string' | 'options';
   /** Custom function to map URL to adapter options */
   optionsMapper?: (url: URL) => Record<string, unknown>;
 }

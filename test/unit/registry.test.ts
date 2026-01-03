@@ -49,7 +49,7 @@ describe('registry', () => {
 
   it('registerAdapter can override existing protocol', () => {
     const originalRegistry = getRegistry();
-    const originalPackage = originalRegistry['redis:'].package;
+    const originalConfig = { ...originalRegistry['redis:'] };
 
     registerAdapter('redis:', { package: 'custom-redis-adapter' });
 
@@ -57,7 +57,7 @@ describe('registry', () => {
     assert.equal(newRegistry['redis:'].package, 'custom-redis-adapter');
 
     // Restore original
-    registerAdapter('redis:', { package: originalPackage });
+    registerAdapter('redis:', originalConfig);
   });
 
   it('getRegistry returns a copy (not the original)', () => {
@@ -66,5 +66,115 @@ describe('registry', () => {
 
     assert.notStrictEqual(registry1, registry2);
     assert.deepEqual(registry1, registry2);
+  });
+
+  describe('optionsMapper behavior', () => {
+    it('should have correct optionsMapper for postgresql protocol', () => {
+      const registry = getRegistry();
+      const config = registry['postgresql:'];
+
+      assert.ok(config.optionsMapper);
+      const result = config.optionsMapper?.(new URL('postgresql://user:pass@localhost:5432/db'));
+      assert.deepEqual(result, { uri: 'postgresql://user:pass@localhost:5432/db' });
+    });
+
+    it('should have correct optionsMapper for postgres protocol', () => {
+      const registry = getRegistry();
+      const config = registry['postgres:'];
+
+      assert.ok(config.optionsMapper);
+      const result = config.optionsMapper?.(new URL('postgres://user:pass@localhost:5432/db'));
+      assert.deepEqual(result, { uri: 'postgres://user:pass@localhost:5432/db' });
+    });
+
+    it('should have correct optionsMapper for mysql protocol', () => {
+      const registry = getRegistry();
+      const config = registry['mysql:'];
+
+      assert.ok(config.optionsMapper);
+      const result = config.optionsMapper?.(new URL('mysql://user:pass@localhost:3306/db'));
+      assert.deepEqual(result, { uri: 'mysql://user:pass@localhost:3306/db' });
+    });
+
+    it('should have correct optionsMapper for sqlite protocol', () => {
+      const registry = getRegistry();
+      const config = registry['sqlite:'];
+
+      assert.ok(config.optionsMapper);
+      const result = config.optionsMapper?.(new URL('sqlite:///path/to/db.sqlite'));
+      assert.deepEqual(result, { uri: 'sqlite:///path/to/db.sqlite' });
+    });
+
+    it('should have correct optionsMapper for mongodb protocol', () => {
+      const registry = getRegistry();
+      const config = registry['mongodb:'];
+
+      assert.ok(config.optionsMapper);
+      const result = config.optionsMapper?.(new URL('mongodb://user:pass@localhost:27017/db'));
+      assert.deepEqual(result, { url: 'mongodb://user:pass@localhost:27017/db' });
+    });
+
+    it('should have correct optionsMapper for mongodb+srv protocol', () => {
+      const registry = getRegistry();
+      const config = registry['mongodb+srv:'];
+
+      assert.ok(config.optionsMapper);
+      const result = config.optionsMapper?.(new URL('mongodb+srv://user:pass@cluster.mongodb.net/db'));
+      assert.deepEqual(result, { url: 'mongodb+srv://user:pass@cluster.mongodb.net/db' });
+    });
+
+    it('should have correct optionsMapper for etcd protocol', () => {
+      const registry = getRegistry();
+      const config = registry['etcd:'];
+
+      assert.ok(config.optionsMapper);
+      const result = config.optionsMapper?.(new URL('etcd://localhost:2379'));
+      assert.deepEqual(result, { url: 'etcd://localhost:2379' });
+    });
+
+    it('should use string mode for redis protocol', () => {
+      const registry = getRegistry();
+      const config = registry['redis:'];
+
+      assert.equal(config.optionsMapper, undefined);
+      assert.equal(config.mode, 'string');
+    });
+
+    it('should use string mode for rediss protocol', () => {
+      const registry = getRegistry();
+      const config = registry['rediss:'];
+
+      assert.equal(config.optionsMapper, undefined);
+      assert.equal(config.mode, 'string');
+    });
+
+    it('should use string mode for memcache protocol', () => {
+      const registry = getRegistry();
+      const config = registry['memcache:'];
+
+      assert.equal(config.optionsMapper, undefined);
+      assert.equal(config.mode, 'string');
+    });
+
+    it('should have correct optionsMapper for file protocol', () => {
+      const registry = getRegistry();
+      const config = registry['file:'];
+
+      assert.ok(config.optionsMapper);
+      const result = config.optionsMapper?.(new URL('file://./data.json')) as { filename: string };
+      // The resolveFilePath function converts relative paths to absolute paths
+      assert.ok(result.filename.endsWith('data.json'));
+      assert.ok(result.filename.includes('keyv-registry'));
+    });
+
+    it('should preserve query parameters in URL when mapping', () => {
+      const registry = getRegistry();
+      const config = registry['postgresql:'];
+
+      assert.ok(config.optionsMapper);
+      const url = new URL('postgresql://user:pass@localhost:5432/db?ssl=true&timeout=5000');
+      const result = config.optionsMapper?.(url);
+      assert.deepEqual(result, { uri: 'postgresql://user:pass@localhost:5432/db?ssl=true&timeout=5000' });
+    });
   });
 });
