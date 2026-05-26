@@ -35,7 +35,7 @@ export default function loadAdapter(packageName: string, exportName: string | un
     return;
   } catch {
     // Not installed - dynamically install then load
-    installModule(packageName, nodeModulesPath, {}, (err: Error | null) => {
+    installModule(packageName, nodeModulesPath, {}, (err?: Error) => {
       if (err) return callback(err);
       try {
         const mod = _require(packageName);
