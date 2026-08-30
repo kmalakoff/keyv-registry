@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { safeRmSync } from 'fs-remove-compat';
 import createStore from '../../src/index.ts';
 import { clearAdapterCache } from '../../src/loadAdapter.ts';
 
@@ -138,47 +139,48 @@ describe('createStore', () => {
     });
   });
 
+  describe('file protocol', () => {
+    const dir = '.tmp/createStore-file';
+
+    after(() => {
+      safeRmSync(dir);
+    });
+
+    it('creates a file store that round-trips values', async () => {
+      const store = await createStore(`file://./${dir}/store.json`);
+
+      assert.ok(store);
+      await store.set('key', 'value');
+      assert.equal(await store.get('key'), 'value');
+    });
+  });
+
   describe('adapter options mapping', () => {
     it('should work with protocols that require uri mapping', async () => {
-      // This test verifies that the URI is properly passed to adapters
-      // that expect an options object with 'uri' property
-      // We test with sqlite which should work without a real database
-      try {
-        const store = await createStore('sqlite:///:memory:');
-        assert.ok(store);
-        assert.equal(typeof store.get, 'function');
-        assert.equal(typeof store.set, 'function');
-      } catch (err) {
-        // SQLite in memory might still fail due to async initialization
-        // but the important thing is that the options mapping works
-        assert.ok(err instanceof Error);
-      }
+      // sqlite expects an options object carrying a 'uri' property
+      const store = await createStore('sqlite:///:memory:');
+
+      assert.ok(store);
+      assert.equal(typeof store.get, 'function');
+      assert.equal(typeof store.set, 'function');
     });
 
     it('should work with protocols that require url mapping', async () => {
-      // Test with etcd which expects 'url' property
-      try {
-        const store = await createStore('etcd://localhost:2379');
-        assert.ok(store);
-        assert.equal(typeof store.get, 'function');
-        assert.equal(typeof store.set, 'function');
-      } catch (err) {
-        // Connection might fail but the options mapping should work
-        assert.ok(err instanceof Error);
-      }
+      // etcd expects an options object carrying a 'url' property
+      const store = await createStore('etcd://localhost:2379');
+
+      assert.ok(store);
+      assert.equal(typeof store.get, 'function');
+      assert.equal(typeof store.set, 'function');
     });
 
     it('should work with protocols that accept direct URL', async () => {
-      // Test with redis which accepts direct URL string
-      try {
-        const store = await createStore('redis://localhost:6379');
-        assert.ok(store);
-        assert.equal(typeof store.get, 'function');
-        assert.equal(typeof store.set, 'function');
-      } catch (err) {
-        // Connection might fail but the URL passing should work
-        assert.ok(err instanceof Error);
-      }
+      // redis takes the URI string directly rather than an options object
+      const store = await createStore('redis://localhost:6379');
+
+      assert.ok(store);
+      assert.equal(typeof store.get, 'function');
+      assert.equal(typeof store.set, 'function');
     });
 
     it('should parse query parameters correctly', async () => {

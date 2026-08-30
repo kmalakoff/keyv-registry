@@ -1,13 +1,13 @@
 # keyv-registry
 
-Protocol-based Keyv adapter registry with dynamic module installation.
+Protocol-based Keyv adapter registry.
 
-Create Keyv stores from URI strings with automatic adapter resolution and on-demand installation.
+Create Keyv stores from URI strings, resolving each adapter from the modules installed alongside your application.
 
 ## Features
 
 - **URI-based configuration**: Use familiar connection strings like `redis://localhost:6379`
-- **Dynamic installation**: Adapters are installed on-demand, no hard dependencies
+- **No bundled adapters**: install only the adapter you use; keyv-registry itself depends on nothing but keyv
 - **Extensible registry**: Register custom protocols or override defaults
 - **Dual-boot API**: Supports both Promise and callback patterns
 - **URI parameter mapping**: Query params automatically converted to adapter options
@@ -18,6 +18,17 @@ Create Keyv stores from URI strings with automatic adapter resolution and on-dem
 ```bash
 npm install keyv-registry
 ```
+
+Adapters are not bundled. Install the one your protocol needs alongside it:
+
+```bash
+npm install @keyv/redis   # redis://, rediss://
+npm install keyv-file     # file://
+```
+
+`memory://` is built in and needs no package.
+
+Adapters are resolved with `require()`, so an adapter only has to be installed somewhere Node resolves from your application: your project's `node_modules`, or globally beside a globally installed CLI. A protocol whose adapter is missing fails with the name of the package to install.
 
 ## Usage
 

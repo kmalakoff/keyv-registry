@@ -1,7 +1,7 @@
 {
   "name": "keyv-registry",
   "version": "1.0.3",
-  "description": "Protocol-based Keyv adapter registry with dynamic module installation",
+  "description": "Protocol-based Keyv adapter registry",
   "keywords": [
     "keyv",
     "registry",
@@ -44,17 +44,27 @@
     "version": "tsds version"
   },
   "dependencies": {
-    "install-module-linked": "^1.0.0",
     "keyv": "^5.0.0"
   },
   "devDependencies": {
+    "@keyv/etcd": "*",
+    "@keyv/redis": "*",
+    "@keyv/sqlite": "*",
     "@types/mocha": "*",
     "@types/node": "*",
+    "fs-remove-compat": "^1.0.4",
+    "keyv-file": "*",
     "node-version-use": "*",
     "ts-dev-stack": "*",
     "tsds-config": "*"
   },
   "engines": {
     "node": ">=16"
+  },
+  "allowScripts": {
+    "node-filename-to-dist-paths": true,
+    "node-semvers": true,
+    "node-version-use": true,
+    "thread-sleep-compat": true
   }
 }
