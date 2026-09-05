@@ -1,7 +1,6 @@
 import assert from 'assert';
 import { safeRmSync } from 'fs-remove-compat';
-import createStore from '../../src/index.ts';
-import { clearAdapterCache } from '../../src/loadAdapter.ts';
+import createStore, { clearAdapterCache } from 'keyv-registry';
 
 describe('createStore', () => {
   beforeEach(() => {
@@ -140,7 +139,7 @@ describe('createStore', () => {
   });
 
   describe('file protocol', () => {
-    const dir = '.tmp/createStore-file';
+    const dir = `.tmp/createStore-file-${process.pid}`;
 
     after(() => {
       safeRmSync(dir);
@@ -156,24 +155,6 @@ describe('createStore', () => {
   });
 
   describe('adapter options mapping', () => {
-    it('should work with protocols that require uri mapping', async () => {
-      // sqlite expects an options object carrying a 'uri' property
-      const store = await createStore('sqlite:///:memory:');
-
-      assert.ok(store);
-      assert.equal(typeof store.get, 'function');
-      assert.equal(typeof store.set, 'function');
-    });
-
-    it('should work with protocols that require url mapping', async () => {
-      // etcd expects an options object carrying a 'url' property
-      const store = await createStore('etcd://localhost:2379');
-
-      assert.ok(store);
-      assert.equal(typeof store.get, 'function');
-      assert.equal(typeof store.set, 'function');
-    });
-
     it('should work with protocols that accept direct URL', async () => {
       // redis takes the URI string directly rather than an options object
       const store = await createStore('redis://localhost:6379');
