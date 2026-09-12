@@ -1,7 +1,5 @@
 import assert from 'assert';
-import createStore from '../../src/index.ts';
-import { clearAdapterCache } from '../../src/loadAdapter.ts';
-import { registerAdapter } from '../../src/registry.ts';
+import createStore, { clearAdapterCache, registerAdapter } from 'keyv-registry';
 
 describe('loadAdapter', () => {
   beforeEach(() => {
