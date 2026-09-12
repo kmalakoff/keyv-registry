@@ -19,6 +19,8 @@ Create Keyv stores from URI strings, resolving each adapter from the modules ins
 npm install keyv-registry
 ```
 
+Requires Node.js >=16.
+
 Adapters are not bundled. Install the one your protocol needs alongside it:
 
 ```bash
@@ -37,7 +39,12 @@ Adapters are resolved with `require()`, so an adapter only has to be installed s
 ```typescript
 import createStore from 'keyv-registry';
 
-// Redis
+// In-memory storage is built in and needs no adapter package.
+const memory = await createStore('memory://');
+await memory.set('greeting', 'hello');
+console.log(await memory.get('greeting')); // hello
+
+// Redis requires @keyv/redis and a running Redis server.
 const redis = await createStore('redis://localhost:6379');
 
 // PostgreSQL
@@ -45,9 +52,6 @@ const postgres = await createStore('postgresql://user:pass@localhost/db');
 
 // File-based storage
 const file = await createStore('file://~/.cache/myapp/data.json');
-
-// In-memory (built-in, no package needed)
-const memory = await createStore('memory://');
 
 // SQLite
 const sqlite = await createStore('sqlite:///path/to/db.sqlite');

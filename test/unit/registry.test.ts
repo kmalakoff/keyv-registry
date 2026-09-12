@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { getRegistry, registerAdapter } from '../../src/registry.ts';
+import { getRegistry, registerAdapter } from 'keyv-registry';
 
 describe('registry', () => {
   it('getRegistry returns pre-configured protocols', () => {
