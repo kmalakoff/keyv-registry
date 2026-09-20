@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Resolve file path from URL, handling ~ and . prefixes
@@ -10,11 +11,14 @@ export function resolveFilePath(url: URL): string {
 
   // Handle ~ for home directory
   if (url.host === '~') {
-    filePath = path.join(os.homedir(), filePath.slice(1));
+    filePath = path.join(os.homedir(), decodeURIComponent(filePath.slice(1)));
   }
   // Handle . for current directory
   else if (url.host === '.') {
-    filePath = path.join(process.cwd(), filePath.slice(1));
+    filePath = path.join(process.cwd(), decodeURIComponent(filePath.slice(1)));
+  } else {
+    // File-backed adapters such as duckdb use the same native path conversion.
+    filePath = fileURLToPath(new URL(`file://${url.host}${url.pathname}`));
   }
 
   // Ensure directory exists

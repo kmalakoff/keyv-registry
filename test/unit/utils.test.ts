@@ -1,6 +1,10 @@
 import assert from 'assert';
+import { randomUUID } from 'crypto';
+import { existsSync } from 'fs';
+import { safeRmSync } from 'fs-remove-compat';
 import * as os from 'os';
 import * as path from 'path';
+import { pathToFileURL } from 'url';
 
 // Import from source for unit testing
 import { parseUriOptions, resolveFilePath } from '../../src/utils.ts';
@@ -67,6 +71,8 @@ describe('utils', () => {
   });
 
   describe('resolveFilePath', () => {
+    const testDir = path.resolve('.tmp', `registry-path-${randomUUID()}`);
+    after(() => safeRmSync(testDir, { recursive: true, force: true }));
     it('resolves home directory with ~', () => {
       const url = new URL('file://~/.cache/test.json');
       const result = resolveFilePath(url);
@@ -75,18 +81,27 @@ describe('utils', () => {
     });
 
     it('resolves current directory with .', () => {
-      const url = new URL('file://./data/test.json');
+      const relative = path.relative(process.cwd(), testDir).split(path.sep).join('/');
+      const url = new URL(`file://./${relative}/test.json`);
       const result = resolveFilePath(url);
 
-      assert.equal(result, path.join(process.cwd(), 'data/test.json'));
+      assert.equal(result, path.join(testDir, 'test.json'));
     });
 
-    it('returns pathname for absolute paths', () => {
-      // Use /tmp which exists and is writable
-      const url = new URL('file:///tmp/keyv-registry-test/test.json');
+    it('decodes an absolute file URL into a native path', () => {
+      const filename = path.join(testDir, 'directory #1', 'test %.json');
+      const url = pathToFileURL(filename);
       const result = resolveFilePath(url);
 
-      assert.equal(result, '/tmp/keyv-registry-test/test.json');
+      assert.equal(result, filename);
+      assert.ok(existsSync(path.dirname(filename)));
+    });
+
+    it('decodes native paths for other file-backed adapters', () => {
+      const filename = path.join(testDir, 'database #1', 'test.duckdb');
+      const url = new URL(pathToFileURL(filename).href.replace(/^file:/, 'duckdb:'));
+      assert.equal(resolveFilePath(url), filename);
+      assert.ok(existsSync(path.dirname(filename)));
     });
   });
 });
