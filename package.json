@@ -47,7 +47,7 @@
     "keyv": "^5.0.0"
   },
   "devDependencies": {
-    "@keyv/redis": "*",
+    "@keyv/redis": "~5.1.6",
     "@types/mocha": "*",
     "@types/node": "*",
     "fs-remove-compat": "^1.0.4",
