@@ -11,7 +11,7 @@ const PROTOCOL_REGISTRY: Record<string, AdapterConfig> = {
   'postgresql:': { package: '@keyv/postgres', mode: 'options', optionsMapper: (url) => ({ uri: url.toString() }) },
   'postgres:': { package: '@keyv/postgres', mode: 'options', optionsMapper: (url) => ({ uri: url.toString() }) },
   'mysql:': { package: '@keyv/mysql', mode: 'options', optionsMapper: (url) => ({ uri: url.toString() }) },
-  'sqlite:': { package: '@keyv/sqlite', mode: 'options', optionsMapper: (url) => ({ uri: url.toString() }) },
+  'sqlite:': { package: '@keyv/sqlite', mode: 'options', optionsMapper: (url) => ({ uri: `sqlite://${resolveFilePath(url)}` }) },
   'mongodb:': { package: '@keyv/mongo', mode: 'options', optionsMapper: (url) => ({ url: url.toString() }) },
   'mongodb+srv:': { package: '@keyv/mongo', mode: 'options', optionsMapper: (url) => ({ url: url.toString() }) },
   'memcache:': { package: '@keyv/memcache', mode: 'string' },
@@ -30,7 +30,7 @@ const PROTOCOL_REGISTRY: Record<string, AdapterConfig> = {
   // Future/custom adapters
   'duckdb:': {
     package: 'keyv-duckdb',
-    optionsMapper: (url: URL) => ({ filename: resolveFilePath(url) }),
+    optionsMapper: (url: URL) => ({ path: resolveFilePath(url) }),
   },
 };
 

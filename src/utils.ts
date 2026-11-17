@@ -3,27 +3,39 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// `scheme://C:/x` parses the drive letter as a host and drops the colon, so it is rewritten to `scheme:///C:/x` first.
+const DRIVE_AS_HOST = /^([a-zA-Z][a-zA-Z0-9+.-]*:)\/\/([a-zA-Z]:[/\\])/;
+
 /**
- * Resolve file path from URL, handling ~ and . prefixes
+ * Parse a store URI, keeping a Windows drive letter written after `//` in the path
+ */
+export function parseUri(uri: string): URL {
+  return new URL(uri.replace(DRIVE_AS_HOST, '$1///$2'));
+}
+
+export interface ToFilePathOptions {
+  windows?: boolean;
+  homedir?: string;
+  cwd?: string;
+}
+
+/**
+ * Convert a file-backed store URL to a native path, handling ~ and . prefixes (no filesystem access)
+ */
+export function toFilePath(url: URL, options: ToFilePathOptions = {}): string {
+  const windows = options.windows ?? process.platform === 'win32';
+  const p = windows ? path.win32 : path.posix;
+  if (url.host === '~') return p.join(options.homedir ?? os.homedir(), decodeURIComponent(url.pathname.slice(1)));
+  if (url.host === '.') return p.join(options.cwd ?? process.cwd(), decodeURIComponent(url.pathname.slice(1)));
+  return fileURLToPath(new URL(`file://${url.host}${url.pathname}`), { windows });
+}
+
+/**
+ * Resolve file path from URL and create its parent directory
  */
 export function resolveFilePath(url: URL): string {
-  let filePath = url.pathname;
-
-  // Handle ~ for home directory
-  if (url.host === '~') {
-    filePath = path.join(os.homedir(), decodeURIComponent(filePath.slice(1)));
-  }
-  // Handle . for current directory
-  else if (url.host === '.') {
-    filePath = path.join(process.cwd(), decodeURIComponent(filePath.slice(1)));
-  } else {
-    // File-backed adapters such as duckdb use the same native path conversion.
-    filePath = fileURLToPath(new URL(`file://${url.host}${url.pathname}`));
-  }
-
-  // Ensure directory exists
+  const filePath = toFilePath(url);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-
   return filePath;
 }
 

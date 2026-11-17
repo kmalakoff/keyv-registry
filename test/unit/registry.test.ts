@@ -1,5 +1,13 @@
 import assert from 'assert';
+import { randomUUID } from 'crypto';
+import { existsSync } from 'fs';
+import { safeRmSync } from 'fs-remove-compat';
 import { getRegistry, registerAdapter } from 'keyv-registry';
+import * as path from 'path';
+import { pathToFileURL } from 'url';
+
+const testDir = path.resolve('.tmp', `registry-mapper-${randomUUID()}`);
+after(() => safeRmSync(testDir, { recursive: true, force: true }));
 
 describe('registry', () => {
   it('getRegistry returns pre-configured protocols', () => {
@@ -96,13 +104,19 @@ describe('registry', () => {
       assert.deepEqual(result, { uri: 'mysql://user:pass@localhost:3306/db' });
     });
 
-    it('should have correct optionsMapper for sqlite protocol', () => {
-      const registry = getRegistry();
-      const config = registry['sqlite:'];
+    it('maps sqlite to a native path uri and creates its folder', () => {
+      const config = getRegistry()['sqlite:'];
+      const filename = path.join(testDir, 'sqlite', 'nested', 'db.sqlite');
+      const result = config.optionsMapper?.(new URL(pathToFileURL(filename).href.replace(/^file:/, 'sqlite:'))) as { uri: string };
+      assert.equal(result.uri, `sqlite://${filename}`);
+      assert.ok(existsSync(path.dirname(filename)));
+    });
 
-      assert.ok(config.optionsMapper);
-      const result = config.optionsMapper?.(new URL('sqlite:///path/to/db.sqlite'));
-      assert.deepEqual(result, { uri: 'sqlite:///path/to/db.sqlite' });
+    it('maps duckdb to the path option keyv-duckdb reads', () => {
+      const config = getRegistry()['duckdb:'];
+      const filename = path.join(testDir, 'duckdb', 'db.duckdb');
+      const result = config.optionsMapper?.(new URL(pathToFileURL(filename).href.replace(/^file:/, 'duckdb:')));
+      assert.deepEqual(result, { path: filename });
     });
 
     it('should have correct optionsMapper for mongodb protocol', () => {

@@ -19,13 +19,14 @@ Create Keyv stores from URI strings, resolving each adapter from the modules ins
 npm install keyv-registry
 ```
 
-Requires Node.js >=16.
+Requires Node.js >=22.19.0 (keyv 6's floor). Adapters should be keyv 6 adapters (`@keyv/redis` 6, `@keyv/sqlite` 6, ...); keyv 6 also wraps keyv 5-era adapters.
 
 Adapters are not bundled. Install the one your protocol needs alongside it:
 
 ```bash
 npm install @keyv/redis   # redis://, rediss://
 npm install keyv-file     # file://
+npm install keyv-duckdb   # duckdb:// (0.2.0 or later)
 ```
 
 `memory://` is built in and needs no package.
@@ -59,7 +60,7 @@ const sqlite = await createStore('sqlite:///path/to/db.sqlite');
 // With options
 const store = await createStore('redis://localhost:6379', {
   namespace: 'myapp',
-  ttl: 60000
+  ttl: 60000,
 });
 ```
 
@@ -97,19 +98,22 @@ const file = await createStore('file://~/data.json?writeDelay=100&pretty=true');
 Connection strings are passed to adapters via protocol-specific mappings. Different adapters expect connection information in different formats:
 
 **Direct URL passing** (adapter instantiated with URI string):
+
 - `redis://`, `rediss://` - Redis
 - `memcache://` - Memcached
 
 **URI option mapping** (wrapped in `{ uri }` object):
+
 - `postgresql://`, `postgres://` - PostgreSQL
 - `mysql://` - MySQL/MariaDB
 - `sqlite://` - SQLite
 
 **URL option mapping** (wrapped in `{ url }` object):
+
 - `mongodb://`, `mongodb+srv://` - MongoDB
 - `etcd://` - etcd
 
-Query parameters are always passed through and can be used for adapter-specific configuration. User options override both query parameters and protocol mappings.
+**Where options go.** For `file://`, `sqlite://` and `duckdb://` the URI path is the file location. Query parameters are adapter options. Options passed in code win over query parameters and over the URI path. Keyv's own options passed in code (`namespace`, `ttl`, `serialization`, `compression`, `stats`, `sanitize`, `encryption`, `checkExpired`) go to `new Keyv(...)`; every other option goes to the adapter constructor.
 
 ### Custom Adapters
 
@@ -127,8 +131,8 @@ registerAdapter('file:', {
   package: '@my-org/keyv-file-encrypted',
   optionsMapper: (url) => ({
     filename: url.pathname,
-    encryption: true
-  })
+    encryption: true,
+  }),
 });
 ```
 
@@ -142,7 +146,7 @@ import KeyvRedis from '@keyv/redis';
 
 const customRedis = new KeyvRedis('redis://localhost:6379', {
   useUnlink: true,
-  cluster: true
+  cluster: true,
 });
 
 // URI is ignored when store option is provided
@@ -153,27 +157,27 @@ const store = await createStore('redis://ignored', { store: customRedis });
 
 ### Official @keyv Adapters
 
-| Protocol | Package | Connection String Handling | Notes |
-|----------|---------|---------------------------|-------|
-| `redis://`, `rediss://` | `@keyv/redis` | Direct URL | Redis, supports TLS |
-| `postgresql://`, `postgres://` | `@keyv/postgres` | URI option | PostgreSQL |
-| `mysql://` | `@keyv/mysql` | URI option | MySQL/MariaDB |
-| `sqlite://` | `@keyv/sqlite` | URI option | SQLite |
-| `mongodb://`, `mongodb+srv://` | `@keyv/mongo` | URL option | MongoDB |
-| `memcache://` | `@keyv/memcache` | Direct URI | Memcached |
-| `etcd://` | `@keyv/etcd` | URL option | etcd |
+| Protocol                       | Package          | Connection String Handling | Notes               |
+| ------------------------------ | ---------------- | -------------------------- | ------------------- |
+| `redis://`, `rediss://`        | `@keyv/redis`    | Direct URL                 | Redis, supports TLS |
+| `postgresql://`, `postgres://` | `@keyv/postgres` | URI option                 | PostgreSQL          |
+| `mysql://`                     | `@keyv/mysql`    | URI option                 | MySQL/MariaDB       |
+| `sqlite://`                    | `@keyv/sqlite`   | URI option                 | SQLite              |
+| `mongodb://`, `mongodb+srv://` | `@keyv/mongo`    | URL option                 | MongoDB             |
+| `memcache://`                  | `@keyv/memcache` | Direct URI                 | Memcached           |
+| `etcd://`                      | `@keyv/etcd`     | URL option                 | etcd                |
 
 ### Third-party Adapters
 
-| Protocol | Package | Notes |
-|----------|---------|-------|
-| `file://` | `keyv-file` | File-based JSON storage |
-| `duckdb://` | `keyv-duckdb` | DuckDB (planned) |
+| Protocol    | Package       | Notes                   |
+| ----------- | ------------- | ----------------------- |
+| `file://`   | `keyv-file`   | File-based JSON storage |
+| `duckdb://` | `keyv-duckdb` | DuckDB, 0.2.0 or later  |
 
 ### Built-in
 
-| Protocol | Notes |
-|----------|-------|
+| Protocol    | Notes                            |
+| ----------- | -------------------------------- |
 | `memory://` | In-memory Map, no package needed |
 
 ## API
@@ -183,6 +187,7 @@ const store = await createStore('redis://ignored', { store: customRedis });
 Create a Keyv store from a URI string.
 
 **Parameters:**
+
 - `uri` (string): Connection URI with protocol
 - `options` (object, optional): Keyv options
   - `store`: Pre-instantiated adapter (bypasses URI loading)
@@ -198,6 +203,7 @@ Create a Keyv store from a URI string.
 Register or override a protocol adapter.
 
 **Parameters:**
+
 - `protocol` (string): Protocol with or without trailing colon (e.g., `'redis:'` or `'redis'`)
 - `config` (object): Adapter configuration
   - `package`: npm package name, or `null` for built-in
@@ -229,7 +235,33 @@ await createStore('file://./data/cache.json');
 await createStore('file:///var/cache/myapp/data.json');
 ```
 
-Directories are created automatically if they don't exist.
+Directories are created automatically if they don't exist, for `file://`, `sqlite://` and `duckdb://`. If a directory cannot be created, `createStore` rejects. Windows drive paths work as `file:///C:/data/x.json` or `file://C:/data/x.json`.
+
+## Errors
+
+keyv-registry attaches no `error` listener. With keyv 6, a failing call then rejects. Attach `store.on('error', ...)` yourself to get fallback values (`undefined`, `false`) instead.
+
+## Upgrading from 2.x
+
+- Node.js >=22.19.0 and keyv 6.
+- keyv 6 has no default namespace, and its key separator is `::`. Data written through keyv-registry 2.x (keyv 5, default namespace `keyv`) reads as missing. Move it once with `migrateKeyv5Keys`:
+
+```typescript
+import createStore, { migrateKeyv5Keys } from 'keyv-registry';
+
+const store = await createStore('file://~/.cache/app/data.json');
+const moved = await migrateKeyv5Keys(store); // number of entries moved
+```
+
+It moves entries of the default `keyv` namespace only, keeps expiry times, skips expired entries, keeps the plain key if both exist, and is safe to run again. Plan to remove the call once your data is moved; it goes away in the next major.
+
+- Run it at startup, before the store serves other traffic: it renames keys and switches `store.namespace` while it runs.
+- A plain key that itself starts with `keyv:` is taken for a keyv 5 key.
+- A store that cannot iterate (for example memcache) has nothing to find: it returns 0 and your old entries stay unread.
+- If a store error occurs during the move, the old key is kept and the call rejects with the error as `cause`. Entries already moved stay moved; run it again after fixing the cause.
+
+- Keyv option keys given in code or the URI are no longer passed to the adapter constructor.
+- `duckdb://` now opens the file in the URI. 2.x ignored the path and used `~/.keyv-duckdb/store.duckdb`.
 
 ## License
 

@@ -20,4 +20,9 @@ describe('exports .cjs', () => {
     assert.equal(typeof keyvRegistry.getRegistry, 'function');
     assert.equal(typeof keyvRegistry.clearAdapterCache, 'function');
   });
+
+  it('migration exports', () => {
+    assert.equal(typeof keyvRegistry.migrateKeyv5Keys, 'function');
+    assert.equal(keyvRegistry.KEYV5_NAMESPACE, 'keyv');
+  });
 });

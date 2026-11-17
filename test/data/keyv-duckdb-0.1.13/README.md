@@ -1,0 +1,1 @@
+`plain.duckdb` and `enc.duckdb` were written by the real keyv-duckdb 0.1.13 with keyv 5 (dummy values; the encryption key is in `test/unit/migrate-duckdb.test.ts`). Copied from keyv-duckdb's `test/data/0.1.13/`, with its `generate.mjs`.

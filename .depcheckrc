@@ -1,1 +1,1 @@
-ignores: ["keyv-registry", "node-version-use", "ts-dev-stack", "@keyv/redis", "keyv-file"]
+ignores: ["keyv-registry", "node-version-use", "ts-dev-stack", "@keyv/redis", "@keyv/sqlite", "keyv-duckdb", "keyv-file"]

@@ -2,7 +2,9 @@ import type Keyv from 'keyv';
 import type { CreateStoreCallback, CreateStoreOptions } from './types.ts';
 import worker from './worker.ts';
 
+export { KEYV5_NAMESPACE } from './constants.ts';
 export { clearAdapterCache } from './loadAdapter.ts';
+export { default as migrateKeyv5Keys } from './migrate-keyv5.ts';
 export { getRegistry, registerAdapter } from './registry.ts';
 export type { AdapterConfig, CreateStoreCallback, CreateStoreOptions } from './types.ts';
 

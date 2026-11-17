@@ -7,6 +7,20 @@ const _require = typeof require === 'undefined' ? Module.createRequire(import.me
 // Cache loaded adapters
 const adapterCache = new Map<string, unknown>();
 
+// Module-not-found for the adapter itself; a missing dependency of the adapter names another module
+function isMissingModule(err: unknown, packageName: string): boolean {
+  const e = err as { code?: string; message?: string };
+  return (e?.code === 'MODULE_NOT_FOUND' || e?.code === 'ERR_MODULE_NOT_FOUND') && typeof e.message === 'string' && e.message.includes(`'${packageName}'`);
+}
+
+// Keep the original error as `cause` (the `ErrorOptions` argument is not in this project's lib target)
+function loadError(err: unknown, packageName: string): Error {
+  const message = isMissingModule(err, packageName) ? `Adapter "${packageName}" is not installed. Install it alongside this package: npm install ${packageName}` : `Adapter "${packageName}" failed to load: ${(err as Error)?.message}`;
+  const error = new Error(message);
+  (error as Error & { cause?: unknown }).cause = err;
+  return error;
+}
+
 /**
  * Load an adapter from the modules installed alongside the consumer
  */
@@ -23,8 +37,8 @@ export default function loadAdapter(packageName: string, exportName: string | un
   try {
     const mod = _require(packageName);
     Adapter = exportName ? mod[exportName] : (mod.default ?? mod);
-  } catch {
-    callback(new Error(`Adapter "${packageName}" is not installed. Install it alongside this package: npm install ${packageName}`));
+  } catch (err) {
+    callback(loadError(err, packageName));
     return;
   }
 

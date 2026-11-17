@@ -1,4 +1,4 @@
-import type Keyv from 'keyv';
+import type { Keyv, KeyvOptions } from 'keyv';
 
 /**
  * Configuration for a protocol adapter
@@ -17,14 +17,10 @@ export interface AdapterConfig {
 /**
  * Options for createStore
  */
-export interface CreateStoreOptions {
+export interface CreateStoreOptions extends Partial<KeyvOptions> {
   /** Pre-instantiated adapter (bypasses URI loading) */
-  store?: unknown;
-  /** Keyv namespace */
-  namespace?: string;
-  /** Default TTL in milliseconds */
-  ttl?: number;
-  /** Additional Keyv options */
+  store?: KeyvOptions['store'];
+  /** Options passed through to the adapter constructor */
   [key: string]: unknown;
 }
 

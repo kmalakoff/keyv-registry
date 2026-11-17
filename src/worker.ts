@@ -1,8 +1,22 @@
 import Keyv from 'keyv';
+import { KEYV_OPTION_KEYS } from './constants.ts';
 import loadAdapter from './loadAdapter.ts';
 import { getAdapterConfig } from './registry.ts';
 import type { CreateStoreCallback, CreateStoreOptions } from './types.ts';
-import { parseUriOptions } from './utils.ts';
+import { parseUri, parseUriOptions } from './utils.ts';
+
+/**
+ * Split code options: Keyv's own keys go to `new Keyv`, the rest to the adapter constructor
+ */
+export function splitOptions(merged: Record<string, unknown>): { keyvOptions: Record<string, unknown>; adapterOptions: Record<string, unknown> } {
+  const keyvOptions: Record<string, unknown> = {};
+  const adapterOptions: Record<string, unknown> = {};
+  for (const key of Object.keys(merged)) {
+    if (key === 'store') continue;
+    (KEYV_OPTION_KEYS.has(key) ? keyvOptions : adapterOptions)[key] = merged[key];
+  }
+  return { keyvOptions, adapterOptions };
+}
 
 /**
  * Core worker function that creates a Keyv store
@@ -22,7 +36,7 @@ export default function worker<T>(uri: string, options: CreateStoreOptions, call
   // Parse URI
   let url: URL;
   try {
-    url = new URL(uri);
+    url = parseUri(uri);
   } catch (_err) {
     callback(new Error(`Invalid URI: ${uri}`));
     return;
@@ -51,27 +65,16 @@ export default function worker<T>(uri: string, options: CreateStoreOptions, call
     if (err) return callback(err);
 
     try {
-      // Build adapter options: URI params + custom mapper + user options
+      // Code options split between Keyv and the adapter; query parameters and the URI path mapper go to the adapter only. Code wins.
+      const { keyvOptions, adapterOptions: codeAdapterOptions } = splitOptions(options);
       const adapterOptions = {
         ...parseUriOptions(url),
         ...(config.optionsMapper?.(url) ?? {}),
-        ...options,
+        ...codeAdapterOptions,
       };
 
-      // Remove store from adapter options to avoid confusion
-      const { store: _, ...cleanAdapterOptions } = adapterOptions;
-
-      if (config.mode === 'string') {
-        const storeInstance = new (AdapterClass as new (uri: string, options: Record<string, unknown>) => unknown)(uri, cleanAdapterOptions);
-        const keyv = new Keyv<T>({ store: storeInstance, ...options });
-        callback(null, keyv);
-        return;
-      }
-
-      const storeInstance = new (AdapterClass as new (options: Record<string, unknown>) => unknown)(cleanAdapterOptions);
-      const keyv = new Keyv<T>({ store: storeInstance, ...options });
-
-      callback(null, keyv);
+      const storeInstance = config.mode === 'string' ? new (AdapterClass as new (uri: string, options: Record<string, unknown>) => unknown)(uri, adapterOptions) : new (AdapterClass as new (options: Record<string, unknown>) => unknown)(adapterOptions);
+      callback(null, new Keyv<T>({ ...keyvOptions, store: storeInstance }));
     } catch (createErr) {
       callback(createErr as Error);
     }

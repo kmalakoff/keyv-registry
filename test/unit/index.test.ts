@@ -1,6 +1,9 @@
 import assert from 'assert';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { safeRmSync } from 'fs-remove-compat';
 import createStore, { clearAdapterCache } from 'keyv-registry';
+import * as path from 'path';
+import { pathToFileURL } from 'url';
 
 describe('createStore', () => {
   beforeEach(() => {
@@ -151,6 +154,55 @@ describe('createStore', () => {
       assert.ok(store);
       await store.set('key', 'value');
       assert.equal(await store.get('key'), 'value');
+    });
+  });
+
+  describe('file-backed stores', () => {
+    const dir = path.resolve('.tmp', `createStore-files-${process.pid}`);
+    after(() => safeRmSync(dir));
+
+    for (const [protocol, ext] of [
+      ['sqlite', 'sqlite'],
+      ['file', 'json'],
+    ]) {
+      it(`${protocol}: creates a missing parent folder and round-trips`, async () => {
+        const filename = path.join(dir, protocol, 'missing', 'nested', `store.${ext}`);
+        const store = await createStore<string>(pathToFileURL(filename).href.replace(/^file:/, `${protocol}:`));
+        await store.set('key', 'value');
+        assert.equal(await store.get('key'), 'value');
+        await store.disconnect();
+        assert.ok(existsSync(path.dirname(filename)));
+      });
+    }
+
+    it('sqlite: rejects at createStore when the folder cannot be created', async () => {
+      const blocker = path.join(dir, 'blocker');
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(blocker, '');
+      await assert.rejects(createStore(pathToFileURL(path.join(blocker, 'sub', 'store.sqlite')).href.replace(/^file:/, 'sqlite:')));
+    });
+
+    describe('adapter errors (keyv 6)', () => {
+      // A directory where the database file should be: createStore resolves, the adapter then fails.
+      const asDir = () => {
+        const target = path.join(dir, `is-a-dir-${Math.random().toString(36).slice(2)}`);
+        mkdirSync(target, { recursive: true });
+        return pathToFileURL(target).href.replace(/^file:/, 'sqlite:');
+      };
+
+      it('rejects the operation when no error listener is attached', async () => {
+        const store = await createStore<string>(asDir());
+        await assert.rejects(store.set('key', 'value'));
+      });
+
+      it('returns fallbacks and reports to an error listener', async () => {
+        const store = await createStore<string>(asDir());
+        const errors: Error[] = [];
+        store.on('error', (err: Error) => errors.push(err));
+        assert.equal(await store.set('key', 'value'), false);
+        assert.equal(await store.get('key'), undefined);
+        assert.ok(errors.length > 0);
+      });
     });
   });
 

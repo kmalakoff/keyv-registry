@@ -2,12 +2,11 @@ import assert from 'assert';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { safeRmSync } from 'fs-remove-compat';
-import * as os from 'os';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 
 // Import from source for unit testing
-import { parseUriOptions, resolveFilePath } from '../../src/utils.ts';
+import { parseUri, parseUriOptions, resolveFilePath, toFilePath } from '../../src/utils.ts';
 
 describe('utils', () => {
   describe('parseUriOptions', () => {
@@ -73,13 +72,6 @@ describe('utils', () => {
   describe('resolveFilePath', () => {
     const testDir = path.resolve('.tmp', `registry-path-${randomUUID()}`);
     after(() => safeRmSync(testDir, { recursive: true, force: true }));
-    it('resolves home directory with ~', () => {
-      const url = new URL('file://~/.cache/test.json');
-      const result = resolveFilePath(url);
-
-      assert.equal(result, path.join(os.homedir(), '.cache/test.json'));
-    });
-
     it('resolves current directory with .', () => {
       const relative = path.relative(process.cwd(), testDir).split(path.sep).join('/');
       const url = new URL(`file://./${relative}/test.json`);
@@ -102,6 +94,56 @@ describe('utils', () => {
       const url = new URL(pathToFileURL(filename).href.replace(/^file:/, 'duckdb:'));
       assert.equal(resolveFilePath(url), filename);
       assert.ok(existsSync(path.dirname(filename)));
+    });
+  });
+
+  describe('parseUri', () => {
+    const cases: [string, string, string][] = [
+      // [input, host, pathname]
+      ['sqlite://C:/Users/me/t.sqlite', '', '/C:/Users/me/t.sqlite'],
+      ['sqlite:///C:/Users/me/t.sqlite', '', '/C:/Users/me/t.sqlite'],
+      ['duckdb://d:/data/t.duckdb', '', '/d:/data/t.duckdb'],
+      ['file://C:/data/t.json', '', '/C:/data/t.json'],
+      ['sqlite:///var/data/t.sqlite', '', '/var/data/t.sqlite'],
+      ['sqlite://./data/t.sqlite', '.', '/data/t.sqlite'],
+      ['sqlite://~/data/t.sqlite', '~', '/data/t.sqlite'],
+      ['redis://localhost:6379', 'localhost:6379', ''],
+    ];
+    for (const [input, host, pathname] of cases) {
+      it(`keeps ${input}`, () => {
+        const url = parseUri(input);
+        assert.equal(url.host, host);
+        if (pathname) assert.equal(url.pathname, pathname);
+      });
+    }
+
+    it('shows why: plain URL parsing loses the drive colon', () => {
+      assert.equal(new URL('sqlite://C:/Users/me/t.sqlite').host, 'C');
+    });
+  });
+
+  describe('toFilePath', () => {
+    const cases: [string, boolean, string][] = [
+      // [uri, windows, expected]
+      ['sqlite://C:/Users/me/t.sqlite', true, 'C:\\Users\\me\\t.sqlite'],
+      ['sqlite:///C:/Users/me/t.sqlite', true, 'C:\\Users\\me\\t.sqlite'],
+      ['duckdb:///C:/dir%20%231/t.duckdb', true, 'C:\\dir #1\\t.duckdb'],
+      ['sqlite:///var/data/t.sqlite', false, '/var/data/t.sqlite'],
+      ['duckdb:///var/dir%20%231/t.duckdb', false, '/var/dir #1/t.duckdb'],
+      ['sqlite://~/data/t.sqlite', true, 'H:\\home\\data\\t.sqlite'],
+      ['sqlite://~/data/t.sqlite', false, '/home/me/data/t.sqlite'],
+      ['sqlite://./data/t.sqlite', true, 'W:\\work\\data\\t.sqlite'],
+      ['sqlite://./data/t.sqlite', false, '/work/data/t.sqlite'],
+    ];
+    for (const [uri, windows, expected] of cases) {
+      it(`${uri} (${windows ? 'windows' : 'posix'})`, () => {
+        const options = windows ? { windows, homedir: 'H:\\home', cwd: 'W:\\work' } : { windows, homedir: '/home/me', cwd: '/work' };
+        assert.equal(toFilePath(parseUri(uri), options), expected);
+      });
+    }
+
+    it('rejects a host on posix', () => {
+      assert.throws(() => toFilePath(parseUri('sqlite://server/share/t.sqlite'), { windows: false }));
     });
   });
 });

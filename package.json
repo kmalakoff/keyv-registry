@@ -44,19 +44,21 @@
     "version": "tsds version"
   },
   "dependencies": {
-    "keyv": "^5.0.0"
+    "keyv": "^6.1.0"
   },
   "devDependencies": {
-    "@keyv/redis": "~5.1.6",
+    "@keyv/redis": "~6.1.0",
+    "@keyv/sqlite": "~6.1.0",
     "@types/mocha": "*",
-    "@types/node": "*",
+    "@types/node": "^22",
     "fs-remove-compat": "^1.0.4",
+    "keyv-duckdb": "^0.2.0",
     "keyv-file": "*",
     "node-version-use": "*",
     "ts-dev-stack": "*",
     "tsds-config": "*"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=22.19.0"
   }
 }
