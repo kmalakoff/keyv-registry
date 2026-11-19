@@ -26,7 +26,7 @@
 
 <p>Requires Node.js &gt;=22.19.0 (keyv 6's floor). Adapters should be keyv 6 adapters (<code>@keyv/redis</code> 6, <code>@keyv/sqlite</code> 6, ...); keyv 6 also wraps keyv 5-era adapters.</p>
 <p>Adapters are not bundled. Install the one your protocol needs alongside it:</p>
-<pre><code class="bash"><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1"> </span><span class="hl-2">@keyv/redis</span><span class="hl-1">   </span><span class="hl-3"># redis://, rediss://</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1"> </span><span class="hl-2">keyv-file</span><span class="hl-1">     </span><span class="hl-3"># file://</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1"> </span><span class="hl-2">keyv-duckdb</span><span class="hl-1">   </span><span class="hl-3"># duckdb:// (0.2.0 or later)</span>
+<pre><code class="bash"><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1"> </span><span class="hl-2">@keyv/redis</span><span class="hl-1">   </span><span class="hl-3"># redis://, rediss://</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1"> </span><span class="hl-2">keyv-file</span><span class="hl-1">     </span><span class="hl-3"># file://</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1"> </span><span class="hl-2">keyv-duckdb</span><span class="hl-1">   </span><span class="hl-3"># duckdb:// (0.2.0 or later)</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1"> </span><span class="hl-2">proper-lockfile</span><span class="hl-1"> </span><span class="hl-2">@keyv/serialize</span><span class="hl-1"> </span><span class="hl-2">temp-suffix</span><span class="hl-1">   </span><span class="hl-3"># file+shared://</span>
 </code><button type="button">Copy</button></pre>
 
 <p><code>memory://</code> is built in and needs no package.</p>
@@ -152,6 +152,14 @@
 </tr>
 </tbody>
 </table>
+<h3 id="shared-file-" class="tsd-anchor-link">Shared file (<code>file+shared://</code>)<a href="#shared-file-" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>keyv-file keeps its data in memory and rewrites the whole file on every write, so two processes using one file overwrite each other's changes. <code>file+shared://</code> keeps keyv-file's file format in one JSON file that several processes can share, on Windows, macOS and Linux:</p>
+<pre><code class="typescript"><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">tokens</span><span class="hl-1"> = </span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">createStore</span><span class="hl-1">(</span><span class="hl-2">&#39;file+shared://~/.myapp/tokens.json&#39;</span><span class="hl-1">);</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Each write takes a lock, re-reads the file, changes only its own key and replaces the file atomically (mode 0600 on POSIX). Reads always see the current file, so a change made by another process is visible without reopening. A file written by keyv-file opens as is, and keyv-file reads the shared file back. The path shortcuts and drive paths of <code>file://</code> work the same way.</p>
+<p>It needs <code>proper-lockfile</code>, <code>@keyv/serialize</code> and <code>temp-suffix</code> installed alongside keyv-registry, which loads them only when a <code>file+shared://</code> store opens (keyv-registry itself adds no dependency). If one is missing, <code>createStore</code> rejects naming it and the install command. Reading from disk on every call is slower than keyv-file's memory, so use it when more than one process shares the file.</p>
+<p>A failure rejects the call that caused it; no <code>error</code> event is emitted. A write that waited past the lock's stale time (10 s, for example because its process was paused) rejects with code <code>ECOMPROMISED</code> rather than overwrite the writer that took over. A lock left by a killed process is taken over once it is 10 s old. The path is its only option: query parameters are ignored. Code that has a path and no URI can use <code>new KeyvSharedFile({ filename })</code>.</p>
 <h3 id="built-in" class="tsd-anchor-link">Built-in<a href="#built-in" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <table>
 <thead>
@@ -210,7 +218,7 @@
 <p>Directories are created automatically if they don't exist, for <code>file://</code>, <code>sqlite://</code> and <code>duckdb://</code>. If a directory cannot be created, <code>createStore</code> rejects. Windows drive paths work as <code>file:///C:/data/x.json</code> or <code>file://C:/data/x.json</code>.</p>
 <h2 id="errors" class="tsd-anchor-link">Errors<a href="#errors" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>keyv-registry attaches no <code>error</code> listener. With keyv 6, a failing call then rejects. Attach <code>store.on('error', ...)</code> yourself to get fallback values (<code>undefined</code>, <code>false</code>) instead.</p>
-<p><code>createStore('file://…')</code> rejects when the file exists but cannot be read or parsed, and leaves the file unchanged (<code>separatedFile</code> stores are not checked).</p>
+<p><code>createStore('file://…')</code> and <code>createStore('file+shared://…')</code> reject when the file exists but cannot be read or parsed, and leave the file unchanged (<code>separatedFile</code> stores are not checked).</p>
 <h2 id="upgrading-from-2x" class="tsd-anchor-link">Upgrading from 2.x<a href="#upgrading-from-2x" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
 <li>Node.js &gt;=22.19.0 and keyv 6.</li>
@@ -274,6 +282,7 @@
 <ul>
 <li><a href="#official-keyv-adapters"><span>Official @keyv <wbr/>Adapters</span></a></li>
 <li><a href="#third-party-adapters"><span>Third-<wbr/>party <wbr/>Adapters</span></a></li>
+<li><a href="#shared-file-"><span>Shared file ()</span></a></li>
 <li><a href="#built-in"><span>Built-<wbr/>in</span></a></li></ul></li>
 <li><a href="#api"><span>API</span></a></li>
 <li>
