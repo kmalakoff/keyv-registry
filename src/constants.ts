@@ -1,5 +1,8 @@
 import type { KeyvOptions } from 'keyv';
 
+/** The adapter behind `file:`; createStore checks that its file loaded. */
+export const KEYV_FILE_PACKAGE = 'keyv-file';
+
 /** Namespace keyv 5 used by default; keyv 6 has none. */
 export const KEYV5_NAMESPACE = 'keyv';
 

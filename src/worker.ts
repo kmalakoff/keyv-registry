@@ -1,5 +1,6 @@
 import Keyv from 'keyv';
-import { KEYV_OPTION_KEYS } from './constants.ts';
+import { KEYV_FILE_PACKAGE, KEYV_OPTION_KEYS } from './constants.ts';
+import openKeyvFile from './file-store.ts';
 import loadAdapter from './loadAdapter.ts';
 import { getAdapterConfig } from './registry.ts';
 import type { CreateStoreCallback, CreateStoreOptions } from './types.ts';
@@ -73,6 +74,18 @@ export default function worker<T>(uri: string, options: CreateStoreOptions, call
         ...codeAdapterOptions,
       };
 
+      if (config.package === KEYV_FILE_PACKAGE) {
+        loadAdapter(KEYV_FILE_PACKAGE, 'defaultOpts', (optsErr, defaultOpts) => {
+          if (optsErr) return callback(optsErr);
+          try {
+            const store = openKeyvFile(AdapterClass as Parameters<typeof openKeyvFile>[0], (defaultOpts as { deserialize: Parameters<typeof openKeyvFile>[1] }).deserialize, adapterOptions);
+            callback(null, new Keyv<T>({ ...keyvOptions, store }));
+          } catch (openErr) {
+            callback(openErr as Error);
+          }
+        });
+        return;
+      }
       const storeInstance = config.mode === 'string' ? new (AdapterClass as new (uri: string, options: Record<string, unknown>) => unknown)(uri, adapterOptions) : new (AdapterClass as new (options: Record<string, unknown>) => unknown)(adapterOptions);
       callback(null, new Keyv<T>({ ...keyvOptions, store: storeInstance }));
     } catch (createErr) {

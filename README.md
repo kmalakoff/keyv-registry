@@ -241,6 +241,8 @@ Directories are created automatically if they don't exist, for `file://`, `sqlit
 
 keyv-registry attaches no `error` listener. With keyv 6, a failing call then rejects. Attach `store.on('error', ...)` yourself to get fallback values (`undefined`, `false`) instead.
 
+`createStore('file://…')` rejects when the file exists but cannot be read or parsed, and leaves the file unchanged (`separatedFile` stores are not checked).
+
 ## Upgrading from 2.x
 
 - Node.js >=22.19.0 and keyv 6.

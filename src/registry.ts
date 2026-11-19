@@ -1,3 +1,4 @@
+import { KEYV_FILE_PACKAGE } from './constants.ts';
 import type { AdapterConfig } from './types.ts';
 import { resolveFilePath } from './utils.ts';
 
@@ -19,7 +20,7 @@ const PROTOCOL_REGISTRY: Record<string, AdapterConfig> = {
 
   // Third-party adapters
   'file:': {
-    package: 'keyv-file',
+    package: KEYV_FILE_PACKAGE,
     exportName: 'KeyvFile',
     optionsMapper: (url: URL) => ({ filename: resolveFilePath(url) }),
   },

@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { spawnSync } from 'child_process';
 import { existsSync } from 'fs';
 import { safeRmSync } from 'fs-remove-compat';
 import createStore from 'keyv-registry';
@@ -7,22 +8,11 @@ import * as path from 'path';
 // For every file-backed protocol the URI path is where the file lands: relative (`.`), absolute and `~`.
 const root = path.resolve('.tmp', `location-${process.pid}`);
 const home = path.join(root, 'home');
+const roundtrip = path.resolve('test', 'lib', 'store-roundtrip.mjs');
 
 describe('file location', () => {
-  let saved: Record<string, string | undefined>;
-  before(() => {
-    safeRmSync(root);
-    saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
-    process.env.HOME = home; // os.homedir() reads HOME on POSIX and USERPROFILE on Windows
-    process.env.USERPROFILE = home;
-  });
-  after(() => {
-    for (const [key, value] of Object.entries(saved)) {
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
-    }
-    safeRmSync(root);
-  });
+  before(() => safeRmSync(root));
+  after(() => safeRmSync(root));
 
   const cases: [protocol: string, ext: string][] = [
     ['file', 'json'],
@@ -36,7 +26,6 @@ describe('file location', () => {
       const expectations: [label: string, uri: string, file: string][] = [
         ['relative', `${protocol}://./${rel}/${protocol}-rel/a/store.${ext}`, path.join(root, `${protocol}-rel`, 'a', `store.${ext}`)],
         ['absolute', `${protocol}://${root.startsWith('/') ? '' : '/'}${root.split(path.sep).join('/')}/${protocol}-abs/b/store.${ext}`, path.join(root, `${protocol}-abs`, 'b', `store.${ext}`)],
-        ['home (~)', `${protocol}://~/${protocol}-home/c/store.${ext}`, path.join(home, `${protocol}-home`, 'c', `store.${ext}`)],
       ];
 
       for (const [label, uri, file] of expectations) {
@@ -49,7 +38,13 @@ describe('file location', () => {
         });
       }
 
-      it('does not write to the home default when a path is given', () => {
+      // The home is set in a child process: DuckDB keeps the home it first sees, so changing it here would break later tests.
+      it('home (~): creates the file under the home, not the default, and round-trips', () => {
+        const file = path.join(home, `${protocol}-home`, 'c', `store.${ext}`);
+        const env = { ...process.env, HOME: home, USERPROFILE: home }; // os.homedir() reads HOME on POSIX and USERPROFILE on Windows
+        const result = spawnSync(process.execPath, [roundtrip, `${protocol}://~/${protocol}-home/c/store.${ext}`], { env, encoding: 'utf8' });
+        assert.equal(result.status, 0, result.stderr);
+        assert.ok(existsSync(file), `expected ${file}`);
         assert.ok(!existsSync(path.join(home, '.keyv-duckdb')), 'no ~/.keyv-duckdb under the test home');
       });
     });

@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.0.1] - 2026-11-19
+
+### Fixed
+
+- `file://` stores no longer open a file that exists but cannot be read or parsed as an empty store, which made the next write replace the file and drop every other entry. `createStore` now rejects with an error that names the file and the cause, and leaves the file unchanged. This covers a truncated, zero-length, non-JSON or unreadable file, a file that is not a keyv-file store, and a directory at the path. `separatedFile` stores and a `store` you pass in are not checked.
+
 ## [3.0.0] - 2026-11-16
 
 ### Changed
