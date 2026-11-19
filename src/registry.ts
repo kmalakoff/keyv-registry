@@ -1,4 +1,4 @@
-import { KEYV_FILE_PACKAGE } from './constants.ts';
+import { KEYV_FILE_PACKAGE, SHARED_FILE_STORE } from './constants.ts';
 import type { AdapterConfig } from './types.ts';
 import { resolveFilePath } from './utils.ts';
 
@@ -22,6 +22,12 @@ const PROTOCOL_REGISTRY: Record<string, AdapterConfig> = {
   'file:': {
     package: KEYV_FILE_PACKAGE,
     exportName: 'KeyvFile',
+    optionsMapper: (url: URL) => ({ filename: resolveFilePath(url) }),
+  },
+
+  // keyv-file's format, safe for several processes; its lock packages load from the consumer's install when it opens
+  'file+shared:': {
+    package: SHARED_FILE_STORE,
     optionsMapper: (url: URL) => ({ filename: resolveFilePath(url) }),
   },
 

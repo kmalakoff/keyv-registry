@@ -37,6 +37,15 @@ describe('registry', () => {
     assert.ok(registry['file:']);
     assert.equal(registry['file:'].package, 'keyv-file');
     assert.equal(registry['file:'].exportName, 'KeyvFile');
+
+    // Shared file
+    assert.ok(registry['file+shared:']);
+  });
+
+  it('maps a file+shared: URI to the file path', () => {
+    const file = path.join(testDir, 'shared-mapper', 'tokens.json');
+    const options = getRegistry()['file+shared:'].optionsMapper?.(new URL(`file+shared://${pathToFileURL(file).pathname}`));
+    assert.deepEqual(options, { filename: file });
   });
 
   it('registerAdapter adds new protocol', () => {

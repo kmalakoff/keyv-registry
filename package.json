@@ -48,13 +48,17 @@
   },
   "devDependencies": {
     "@keyv/redis": "~6.1.0",
+    "@keyv/serialize": "^1.1.1",
     "@keyv/sqlite": "~6.1.0",
     "@types/mocha": "*",
     "@types/node": "^22",
+    "cross-spawn-cb": "^3.3.1",
     "fs-remove-compat": "^1.0.4",
     "keyv-duckdb": "^0.2.0",
     "keyv-file": "*",
     "node-version-use": "*",
+    "proper-lockfile": "^4.1.2",
+    "temp-suffix": "^1.0.12",
     "ts-dev-stack": "*",
     "tsds-config": "*"
   },

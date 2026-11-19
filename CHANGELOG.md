@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.1.0] - 2026-11-19
+
+### Added
+
+- New `file+shared:` store: keyv-file's format in one JSON file that several processes can share, on Windows, macOS and Linux. Each write takes a lock, re-reads the file, changes only its own key and replaces the file atomically; reads always see the current file. Install `proper-lockfile`, `@keyv/serialize` and `temp-suffix` alongside keyv-registry to use it; keyv-registry itself adds no dependency. Also exported as `KeyvSharedFile`.
+
 ## [3.0.1] - 2026-11-19
 
 ### Fixed

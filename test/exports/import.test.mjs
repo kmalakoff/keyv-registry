@@ -24,4 +24,8 @@ describe('exports .mjs', () => {
     assert.equal(typeof keyvRegistry.migrateKeyv5Keys, 'function');
     assert.equal(keyvRegistry.KEYV5_NAMESPACE, 'keyv');
   });
+
+  it('shared file store export', () => {
+    assert.equal(typeof keyvRegistry.KeyvSharedFile, 'function');
+  });
 });

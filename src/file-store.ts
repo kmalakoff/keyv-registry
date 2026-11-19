@@ -5,14 +5,14 @@ type KeyvFileStore = { opts: { checkFileLock?: boolean }; releaseFileLock?: () =
 type KeyvFileClass = new (options: Record<string, unknown>) => KeyvFileStore;
 
 // The shape keyv-file's load accepts: `cache` as [key, value] pairs, or an object keyed by key.
-function assertStoreShape(data: unknown): void {
+export function assertStoreShape(data: unknown): void {
   const cache = (data as { cache?: unknown } | null)?.cache;
   if (cache === null || typeof cache !== 'object') throw new TypeError('not a keyv-file store: expected an object with a "cache" field');
   if (Array.isArray(cache)) new Map(cache as [unknown, unknown][]);
 }
 
 // Keep the original error as `cause` (the `ErrorOptions` argument is not in this project's lib target)
-function damagedStoreError(filename: string, cause: unknown, advice = 'Repair it, restore it from a backup, or move it aside to start an empty store.'): Error {
+export function damagedStoreError(filename: string, cause: unknown, advice = 'Repair it, restore it from a backup, or move it aside to start an empty store.'): Error {
   const error = new Error(`Cannot open the store file ${filename}: ${(cause as Error)?.message ?? cause}. The file was not changed. ${advice}`);
   (error as Error & { cause?: unknown }).cause = cause;
   return error;

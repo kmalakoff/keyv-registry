@@ -1,8 +1,9 @@
 import Keyv from 'keyv';
-import { KEYV_FILE_PACKAGE, KEYV_OPTION_KEYS } from './constants.ts';
+import { KEYV_FILE_PACKAGE, KEYV_OPTION_KEYS, SHARED_FILE_STORE } from './constants.ts';
 import openKeyvFile from './file-store.ts';
 import loadAdapter from './loadAdapter.ts';
 import { getAdapterConfig } from './registry.ts';
+import KeyvSharedFile from './shared-file-store.ts';
 import type { CreateStoreCallback, CreateStoreOptions } from './types.ts';
 import { parseUri, parseUriOptions } from './utils.ts';
 
@@ -55,6 +56,20 @@ export default function worker<T>(uri: string, options: CreateStoreOptions, call
     try {
       const keyv = new Keyv<T>({ ...parseUriOptions(url), ...options });
       callback(null, keyv);
+    } catch (err) {
+      callback(err as Error);
+    }
+    return;
+  }
+
+  // The store this package ships; its lock packages load when it is constructed
+  if (config.package === SHARED_FILE_STORE) {
+    try {
+      const { keyvOptions, adapterOptions: codeAdapterOptions } = splitOptions(options);
+      // Only the path is an option of this store; query parameters and other code options are not passed on.
+      const { filename } = { ...(config.optionsMapper?.(url) ?? {}), ...codeAdapterOptions } as { filename: string };
+      const store = new KeyvSharedFile({ filename });
+      callback(null, new Keyv<T>({ ...keyvOptions, store }));
     } catch (err) {
       callback(err as Error);
     }

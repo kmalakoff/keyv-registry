@@ -27,6 +27,7 @@ Adapters are not bundled. Install the one your protocol needs alongside it:
 npm install @keyv/redis   # redis://, rediss://
 npm install keyv-file     # file://
 npm install keyv-duckdb   # duckdb:// (0.2.0 or later)
+npm install proper-lockfile @keyv/serialize temp-suffix   # file+shared://
 ```
 
 `memory://` is built in and needs no package.
@@ -174,6 +175,20 @@ const store = await createStore('redis://ignored', { store: customRedis });
 | `file://`   | `keyv-file`   | File-based JSON storage |
 | `duckdb://` | `keyv-duckdb` | DuckDB, 0.2.0 or later  |
 
+### Shared file (`file+shared://`)
+
+keyv-file keeps its data in memory and rewrites the whole file on every write, so two processes using one file overwrite each other's changes. `file+shared://` keeps keyv-file's file format in one JSON file that several processes can share, on Windows, macOS and Linux:
+
+```typescript
+const tokens = await createStore('file+shared://~/.myapp/tokens.json');
+```
+
+Each write takes a lock, re-reads the file, changes only its own key and replaces the file atomically (mode 0600 on POSIX). Reads always see the current file, so a change made by another process is visible without reopening. A file written by keyv-file opens as is, and keyv-file reads the shared file back. The path shortcuts and drive paths of `file://` work the same way.
+
+It needs `proper-lockfile`, `@keyv/serialize` and `temp-suffix` installed alongside keyv-registry, which loads them only when a `file+shared://` store opens (keyv-registry itself adds no dependency). If one is missing, `createStore` rejects naming it and the install command. Reading from disk on every call is slower than keyv-file's memory, so use it when more than one process shares the file.
+
+A failure rejects the call that caused it; no `error` event is emitted. A write that waited past the lock's stale time (10 s, for example because its process was paused) rejects with code `ECOMPROMISED` rather than overwrite the writer that took over. A lock left by a killed process is taken over once it is 10 s old. The path is its only option: query parameters are ignored. Code that has a path and no URI can use `new KeyvSharedFile({ filename })`.
+
 ### Built-in
 
 | Protocol    | Notes                            |
@@ -241,7 +256,7 @@ Directories are created automatically if they don't exist, for `file://`, `sqlit
 
 keyv-registry attaches no `error` listener. With keyv 6, a failing call then rejects. Attach `store.on('error', ...)` yourself to get fallback values (`undefined`, `false`) instead.
 
-`createStore('file://…')` rejects when the file exists but cannot be read or parsed, and leaves the file unchanged (`separatedFile` stores are not checked).
+`createStore('file://…')` and `createStore('file+shared://…')` reject when the file exists but cannot be read or parsed, and leave the file unchanged (`separatedFile` stores are not checked).
 
 ## Upgrading from 2.x
 

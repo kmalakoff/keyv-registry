@@ -8,7 +8,7 @@ const _require = typeof require === 'undefined' ? Module.createRequire(import.me
 const adapterCache = new Map<string, unknown>();
 
 // Module-not-found for the adapter itself; a missing dependency of the adapter names another module
-function isMissingModule(err: unknown, packageName: string): boolean {
+export function isMissingModule(err: unknown, packageName: string): boolean {
   const e = err as { code?: string; message?: string };
   return (e?.code === 'MODULE_NOT_FOUND' || e?.code === 'ERR_MODULE_NOT_FOUND') && typeof e.message === 'string' && e.message.includes(`'${packageName}'`);
 }
@@ -19,6 +19,17 @@ function loadError(err: unknown, packageName: string): Error {
   const error = new Error(message);
   (error as Error & { cause?: unknown }).cause = err;
   return error;
+}
+
+/**
+ * Synchronously require a package from the modules installed alongside the consumer
+ */
+export function requirePackage(packageName: string): unknown {
+  try {
+    return _require(packageName);
+  } catch (err) {
+    throw loadError(err, packageName);
+  }
 }
 
 /**
@@ -35,10 +46,10 @@ export default function loadAdapter(packageName: string, exportName: string | un
 
   let Adapter: unknown;
   try {
-    const mod = _require(packageName);
+    const mod = requirePackage(packageName) as Record<string, unknown> & { default?: unknown };
     Adapter = exportName ? mod[exportName] : (mod.default ?? mod);
   } catch (err) {
-    callback(loadError(err, packageName));
+    callback(err as Error);
     return;
   }
 

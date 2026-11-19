@@ -4,7 +4,7 @@ import type { Keyv, KeyvOptions } from 'keyv';
  * Configuration for a protocol adapter
  */
 export interface AdapterConfig {
-  /** npm package name, or null for built-in adapters */
+  /** npm package name, or null for built-in adapters (the `file+shared:` entry names the store this package ships) */
   package: string | null;
   /** Named export from the package (default: 'default') */
   exportName?: string;

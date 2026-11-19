@@ -6,6 +6,8 @@ export { KEYV5_NAMESPACE } from './constants.ts';
 export { clearAdapterCache } from './loadAdapter.ts';
 export { default as migrateKeyv5Keys } from './migrate-keyv5.ts';
 export { getRegistry, registerAdapter } from './registry.ts';
+export type { KeyvSharedFileOptions } from './shared-file-store.ts';
+export { default as KeyvSharedFile } from './shared-file-store.ts';
 export type { AdapterConfig, CreateStoreCallback, CreateStoreOptions } from './types.ts';
 
 /**

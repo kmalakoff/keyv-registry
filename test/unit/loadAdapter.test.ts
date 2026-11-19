@@ -1,5 +1,6 @@
 import assert from 'assert';
 import createStore, { clearAdapterCache, registerAdapter } from 'keyv-registry';
+import { requirePackage } from '../../src/loadAdapter.ts';
 
 describe('loadAdapter', () => {
   beforeEach(() => {
@@ -30,6 +31,24 @@ describe('loadAdapter', () => {
         assert.equal(store, undefined);
         done();
       });
+    });
+  });
+
+  describe('requirePackage', () => {
+    it('returns the module synchronously', () => {
+      assert.equal(typeof requirePackage('keyv'), 'object');
+    });
+
+    it('throws naming the package to install when it is missing', () => {
+      assert.throws(
+        () => requirePackage('not-a-real-package'),
+        (err: Error & { cause?: unknown }) => {
+          assert.ok(err.message.includes('"not-a-real-package" is not installed'), err.message);
+          assert.ok(err.message.includes('npm install not-a-real-package'), err.message);
+          assert.ok(err.cause instanceof Error);
+          return true;
+        }
+      );
     });
   });
 });
