@@ -210,6 +210,7 @@
 <p>Directories are created automatically if they don't exist, for <code>file://</code>, <code>sqlite://</code> and <code>duckdb://</code>. If a directory cannot be created, <code>createStore</code> rejects. Windows drive paths work as <code>file:///C:/data/x.json</code> or <code>file://C:/data/x.json</code>.</p>
 <h2 id="errors" class="tsd-anchor-link">Errors<a href="#errors" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>keyv-registry attaches no <code>error</code> listener. With keyv 6, a failing call then rejects. Attach <code>store.on('error', ...)</code> yourself to get fallback values (<code>undefined</code>, <code>false</code>) instead.</p>
+<p><code>createStore('file://…')</code> rejects when the file exists but cannot be read or parsed, and leaves the file unchanged (<code>separatedFile</code> stores are not checked).</p>
 <h2 id="upgrading-from-2x" class="tsd-anchor-link">Upgrading from 2.x<a href="#upgrading-from-2x" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
 <li>Node.js &gt;=22.19.0 and keyv 6.</li>
